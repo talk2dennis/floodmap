@@ -1,9 +1,7 @@
 import express from 'express'
-import register from '../modules/auths/register.js'
-import login from '../modules/auths/login.js'
+import authRouter from '../modules/auths/auth.routes.js'
 
 const router = express.Router()
-
 // test route
 router.get('/', (req, res) => {
   res.json({ message: 'Welcome to AFMS API' })
@@ -15,7 +13,6 @@ router.get('/ping', (req, res) => {
 })
 
 // auth routes
-router.post('/auth/register', register)
-router.post('/auth/login', login)
+router.use('/auth', authRouter)
 
 export default router

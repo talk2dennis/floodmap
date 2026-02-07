@@ -39,13 +39,7 @@ const userSchema = new Schema(
     },
 
     location: {
-      state: {
-        lga: String,
-        coordinates: {
-          type: [Number], // [lng, lat]
-          index: '2dsphere'
-        }
-      }
+      type: [Number] // [lng, lat]
     },
 
     resetPasswordToken: String,

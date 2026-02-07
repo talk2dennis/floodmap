@@ -27,7 +27,16 @@ const login = async (req, res, next) => {
 
     res.json({
       token,
-      user
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        location: user.location,
+        state: user.state,
+        role: user.role,
+        lga: user.lga
+      }
     })
   } catch (err) {
     next(err)
