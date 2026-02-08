@@ -74,6 +74,18 @@ export const register = async (req, res) => {
   })
 }
 
+// return current user details exclude password
+export const getCurrentUser = async (req, res) => {
+  // confirm that user is authenticated and has a valid token
+  if (!req.user || !req.user.id) {
+    const error = new Error('Unauthorized')
+    error.status = 401
+    throw error
+  }
+  const user = await User.findById(req.user.id).select('-password')
+  res.json({ user })
+}
+
 export const forgotPassword = async (req, res, next) => {
   try {
     // get the current year
