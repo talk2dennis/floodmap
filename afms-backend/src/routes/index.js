@@ -1,5 +1,6 @@
 import express from 'express'
 import authRouter from '../modules/auths/auth.routes.js'
+import reportRouter from '../modules/reports/report.routes.js'
 
 const router = express.Router()
 // test route
@@ -14,5 +15,7 @@ router.get('/api/ping', (req, res) => {
 
 // auth routes
 router.use('/api/auth', authRouter)
+// report routes
+router.use('/api/reports', reportRouter)
 
 export default router
