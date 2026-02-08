@@ -1,30 +1,34 @@
 import { createTransport } from 'nodemailer'
 
-// Create a transporter object using the default SMTP transport
-const transporter = createTransport({
-  host: process.env.SMTP_HOST,
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
+const buildTransporter = () => {
+  if (!process.env.SMTP_HOST) {
+    throw new Error('SMTP_HOST is not configured')
   }
-})
+
+  const port = Number(process.env.SMTP_PORT || 587)
+  const secure =
+    String(process.env.SMTP_SECURE || 'false').toLowerCase() === 'true'
+
+  const authUser = process.env.SMTP_USER
+  const authPass = process.env.SMTP_PASS
+
+  return createTransport({
+    host: process.env.SMTP_HOST,
+    port,
+    secure,
+    auth: authUser && authPass ? { user: authUser, pass: authPass } : undefined
+  })
+}
 
 // Function to send email
-const sendMail = async ({ to, subject, html }) => {
+const sendMail = async ({ to, subject, html, text }) => {
+  const transporter = buildTransporter()
   await transporter.sendMail({
-    from: `"AFMS" <${process.env.SMTP_USER}>`,
+    from: `"AFMS" <${process.env.SMTP_USER || 'no-reply@afms.local'}>`,
     to,
     subject,
-    html
-  })
-  // Send mail
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      return console.log('Error occurred: ' + error.message)
-    }
-    console.log('Message sent: %s', info.messageId)
+    html,
+    text
   })
 }
 

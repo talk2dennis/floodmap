@@ -8,11 +8,11 @@ router.get('/', (req, res) => {
 })
 
 // ping route for health check
-router.get('/ping', (req, res) => {
+router.get('/api/ping', (req, res) => {
   res.json({ message: 'pong' })
 })
 
 // auth routes
-router.use('/auth', authRouter)
+router.use('/api/auth', authRouter)
 
 export default router

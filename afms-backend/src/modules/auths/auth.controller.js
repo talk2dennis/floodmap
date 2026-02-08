@@ -76,7 +76,8 @@ export const register = async (req, res) => {
 
 export const forgotPassword = async (req, res, next) => {
   try {
-    console.log('Forgot password request received')
+    // get the current year
+    const currentYear = new Date().getFullYear()
     const { email } = req.body
     const user = await User.findOne({ email })
     if (!user) {
@@ -97,17 +98,35 @@ export const forgotPassword = async (req, res, next) => {
     await user.save()
 
     // reset link
-    const resetLink = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`
+    const resetLink = `${process.env.FRONTEND_URL}/auth/reset-password/${resetToken}`
 
     await sendEmail({
       to: user.email,
-      subject: 'AFMS Password Reset',
+      subject: 'AFMS (FloodMap) Password Reset',
       html: `
-      <p>You requested a password reset.</p>
-      <p>Click the link below to reset your password:</p>
-      <a href="${resetLink}">${resetLink}</a>
-      <p>This link expires in 15 minutes.</p>
-    `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+        <img src="https://res.cloudinary.com/dhtwzgd0x/image/upload/v1770545734/afms_logo_ci5vlw.png" alt="AFMS Logo" style="width: 150px; height: auto; margin-bottom: 10px;" />
+        <h1 style="color: white; margin: 0; font-size: 20px;">Password Reset Request</h1>
+      </div>
+      <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; border: 1px solid #eee;">
+        <p style="color: #333; font-size: 16px; line-height: 1.6;">Hi ${user.name},</p>
+        <p style="color: #555; font-size: 14px; line-height: 1.6;">We received a request to reset your password. Click the button below to create a new password:</p>
+        <div style="text-align: center; margin: 30px 0;">
+        <a href="${resetLink}" style="background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Reset Password</a>
+        </div>
+        <div style="text-align: center; margin: 30px 0;">
+          <p style="color: #555; font-size: 14px; line-height: 1.6;">Copy and paste the link below if the button doesn't work:</p>
+          <a href="${resetLink}" style="color: #667eea; word-break: break-all;">${resetLink}</a>
+        </div>
+        <p style="color: #777; font-size: 13px; line-height: 1.6; background: #fff3cd; padding: 12px; border-radius: 4px; border-left: 4px solid #ffc107;">
+        <strong>Security:</strong> This link expires in 1 hour. If you didn't request this, please ignore this email.
+        </p>
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+        <p style="color: #999; font-size: 12px; text-align: center;">© ${currentYear} AFMS-FLOODMAP. All rights reserved.</p>
+      </div>
+      </div>
+      `
     })
 
     res.json({ message: 'Password reset email sent' })
