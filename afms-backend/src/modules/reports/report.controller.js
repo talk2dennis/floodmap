@@ -1,5 +1,6 @@
-import cloudinary from '../../config/cloudinary'
-import Report from './report.model'
+import cloudinaryConfig from '../../config/cloudinary.js'
+const cloudinary = cloudinaryConfig
+import Report from './report.model.js'
 
 export const createReport = async (req, res) => {
   const { title, description, severity, state, lga, latitude, longitude } =
