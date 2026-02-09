@@ -4,7 +4,8 @@ import {
   register,
   forgotPassword,
   resetPassword,
-  getCurrentUser
+  getCurrentUser,
+  updateUserDetails
 } from './auth.controller.js'
 import { protect } from '../../middleware/auth.middleware.js'
 
@@ -16,5 +17,5 @@ authRouter.post('/login', login)
 authRouter.get('/me', protect, getCurrentUser)
 authRouter.post('/forgot-password', forgotPassword)
 authRouter.post('/reset-password/:token', resetPassword)
-
+authRouter.put('/me', protect, updateUserDetails)
 export default authRouter

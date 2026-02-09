@@ -175,3 +175,23 @@ export const resetPassword = async (req, res, next) => {
     next(err)
   }
 }
+
+// update user details controller
+export const updateUserDetails = async (req, res, next) => {
+  try {
+    const userId = req.user.id
+    const { name, phone, location, state, lga } = req.body
+    const user = await User.findById(userId)
+    if (!user) return res.status(404).json({ message: 'User not found' })
+
+    user.name = name || user.name
+    user.phone = phone || user.phone
+    user.location = location || user.location
+    user.state = state || user.state
+    user.lga = lga || user.lga
+    await user.save()
+    res.json({ message: 'User details updated successfully' })
+  } catch (err) {
+    next(err)
+  }
+}
