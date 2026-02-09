@@ -1,5 +1,6 @@
 import axios from 'axios'
 import Alert from '../alerts/alert.model.js'
+import { GoogleGenAI } from '@google/genai'
 
 const chat = async (req, res) => {
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY
@@ -12,6 +13,9 @@ const chat = async (req, res) => {
   }
 
   try {
+    // Initialize Google GenAI client
+    const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY })
+
     const { message } = req.body
     const user = req.user
 
@@ -46,27 +50,29 @@ const chat = async (req, res) => {
     `
 
     // call the chatbot gemini api
-    const response = await axios.post(
-      GEMINI_API_URL,
-      {
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: message }
-        ],
-        temperature: 0.3
+    const response = await ai.models.generateContent({
+      model: 'gemini-1.5-flash',
+      systemInstruction: {
+        parts: [{ text: systemPrompt }]
       },
-      {
-        headers: {
-          Authorization: `Bearer ${GEMINI_API_KEY}`
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: message }]
         }
+      ],
+      generationConfig: {
+        temperature: 0.3
       }
-    )
-    const chatbotReply = response.data.choices[0].message.content
+    })
+    
+    if (!response || !response.text) {
+      throw new Error('AI response was empty or malformed.')
+    }
+
     res.status(200).json({
-      message: chatbotReply,
+      message: response.text,
       context: {
-        systemPrompt,
         alertContext
       }
     })
