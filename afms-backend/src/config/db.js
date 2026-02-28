@@ -13,7 +13,7 @@ if (!MONGO_URI) {
 // Function to connect to MongoDB
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(MONGO_URI)
+    const conn = await mongoose.connect(MONGO_URI, { dbName: 'afms' })
     // Log the connection host
     console.log('connecting to MongoDB...')
 
