@@ -46,7 +46,7 @@ export const login = async (req, res, next) => {
 }
 
 export const register = async (req, res) => {
-  const { name, email, password, phone, location } = req.body
+  const { name, email, password, phone, location, state, lga } = req.body
 
   const exists = await User.findOne({ email })
   if (exists)
@@ -59,7 +59,9 @@ export const register = async (req, res) => {
     email,
     phone,
     password: hashed,
-    location
+    location,
+    state,
+    lga
   })
 
   res.status(201).json({
