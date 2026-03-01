@@ -1,5 +1,4 @@
-import cloudinaryConfig from '../../config/cloudinary.js'
-const cloudinary = cloudinaryConfig
+import { uploadToCloudinary } from '../../utils/uploadToCloudinary.js'
 import Report from './report.model.js'
 
 export const createReport = async (req, res) => {
@@ -21,18 +20,7 @@ export const createReport = async (req, res) => {
   let images = []
 
   for (const file of req.files) {
-    const result = await cloudinary.uploader
-      .upload_stream(
-        {
-          folder: 'afms-reports'
-        },
-        (error, result) => {
-          if (error) throw error
-          return result
-        }
-      )
-      .end(file.data)
-
+    const result = await uploadToCloudinary(file.buffer, 'afms-reports')
     images.push({
       url: result.secure_url,
       publicId: result.public_id
