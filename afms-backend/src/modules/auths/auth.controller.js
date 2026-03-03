@@ -4,22 +4,20 @@ import User from '../users/user.model.js'
 import { generateToken } from '../../utils/jwt.js'
 import sendEmail from '../../utils/sendEmail.js'
 
-export const login = async (req, res, next) => {
+export const login = async (req, res) => {
   try {
     const { email, password } = req.body
 
     const user = await User.findOne({ email }).select('+password')
     if (!user) {
-      const error = new Error('Invalid credentials')
-      error.status = 401
-      throw error
+      res.status(401).json({ message: 'Invalid credentials' })
+      return
     }
 
     const match = await bcrypt.compare(password, user.password)
     if (!match) {
-      const error = new Error('Invalid credentials')
-      error.status = 401
-      throw error
+      res.status(401).json({ message: 'Invalid credentials' })
+      return
     }
 
     const token = generateToken({
@@ -41,48 +39,50 @@ export const login = async (req, res, next) => {
       }
     })
   } catch (err) {
-    next(err)
+    res.status(500).json({ message: `Login error: ${err.message}` })
   }
 }
 
 export const register = async (req, res) => {
   const { name, email, password, phone, location, state, lga } = req.body
 
-  const exists = await User.findOne({ email })
-  if (exists)
-    return res.status(400).json({ message: 'Email already registered' })
+  try {
+    const exists = await User.findOne({ email })
+    if (exists)
+      return res.status(400).json({ message: 'Email already registered' })
 
-  const hashed = await bcrypt.hash(password, 12)
+    const hashed = await bcrypt.hash(password, 12)
 
-  const user = await User.create({
-    name,
-    email,
-    phone,
-    password: hashed,
-    location,
-    state,
-    lga
-  })
+    const user = await User.create({
+      name,
+      email,
+      phone,
+      password: hashed,
+      location,
+      state,
+      lga
+    })
 
-  res.status(201).json({
-    message: 'Registration successful',
-    user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      location: user.location
-    }
-  })
+    res.status(201).json({
+      message: 'Registration successful',
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        location: user.location
+      }
+    })
+  } catch (err) {
+    res.status(500).json({ message: `Registration error: ${err.message}` })
+  }
 }
 
 // return current user details exclude password
 export const getCurrentUser = async (req, res) => {
   // confirm that user is authenticated and has a valid token
   if (!req.user || !req.user.id) {
-    const error = new Error('Unauthorized')
-    error.status = 401
-    throw error
+    return res.status(401).json({ message: 'Unauthorized' })
   }
   const user = await User.findById(req.user.id).select('-password')
   res.json({ user })
@@ -95,9 +95,7 @@ export const forgotPassword = async (req, res, next) => {
     const { email } = req.body
     const user = await User.findOne({ email })
     if (!user) {
-      const error = new Error('No user found with that email')
-      error.status = 404
-      throw error
+      return res.status(404).json({ message: 'No user found with that email' })
     }
 
     const resetToken = crypto.randomBytes(32).toString('hex')
@@ -145,12 +143,14 @@ export const forgotPassword = async (req, res, next) => {
 
     res.json({ message: 'Password reset email sent' })
   } catch (err) {
-    next(err)
+    res
+      .status(500)
+      .json({ message: `Error in forgot password: ${err.message}` })
   }
 }
 
 // reset password controller
-export const resetPassword = async (req, res, next) => {
+export const resetPassword = async (req, res) => {
   try {
     const { token } = req.params
     const { password } = req.body
@@ -164,9 +164,7 @@ export const resetPassword = async (req, res, next) => {
       resetPasswordExpires: { $gt: Date.now() }
     })
     if (!user) {
-      const error = new Error('Invalid or expired token')
-      error.status = 400
-      throw error
+      return res.status(400).json({ message: 'Invalid or expired token' })
     }
     user.password = await bcrypt.hash(password, 12)
     user.resetPasswordToken = undefined
@@ -174,7 +172,9 @@ export const resetPassword = async (req, res, next) => {
     await user.save()
     res.json({ message: 'Password reset successful' })
   } catch (err) {
-    next(err)
+    res
+      .status(500)
+      .json({ message: `Error resetting password: ${err.message}` })
   }
 }
 
@@ -194,6 +194,8 @@ export const updateUserDetails = async (req, res, next) => {
     await user.save()
     res.json({ message: 'User details updated successfully' })
   } catch (err) {
-    next(err)
+    res
+      .status(500)
+      .json({ message: `Error updating user details: ${err.message}` })
   }
 }

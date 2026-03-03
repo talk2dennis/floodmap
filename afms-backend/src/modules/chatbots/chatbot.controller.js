@@ -3,6 +3,7 @@ import Alert from '../alerts/alert.model.js'
 import { GoogleGenAI } from '@google/genai'
 
 const chat = async (req, res) => {
+  console.log('Chat request received with body:', req.body)
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY
   const GEMINI_API_URL = process.env.GEMINI_API_BASE_URL
   // check if api key and url are set
@@ -51,7 +52,11 @@ const chat = async (req, res) => {
 
     // call the chatbot gemini api
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-3-flash-preview',
+      config: {
+        systemInstruction:
+          'You are an AI assistant for a Flood Management System (AFMS). Your role is to provide accurate, calm, and actionable flood-related advice. Only answer flood, rainfall, evacuation, safety, and preparedness questions. Do NOT speculate or predict weather. Encourage users to follow official alerts. If the situation sounds life-threatening, advise contacting emergency services.'
+      },
       systemInstruction: {
         parts: [{ text: systemPrompt }]
       },
@@ -65,11 +70,12 @@ const chat = async (req, res) => {
         temperature: 0.3
       }
     })
-    
+
     if (!response || !response.text) {
-      throw new Error('AI response was empty or malformed.')
+      return res.status(500).json({ message: 'No response from chatbot' })
     }
 
+    console.log('systemPrompt:', systemPrompt)
     res.status(200).json({
       message: response.text,
       context: {
@@ -77,7 +83,8 @@ const chat = async (req, res) => {
       }
     })
   } catch (error) {
-    res.status(500).json({ message: error.message })
+    console.error('Chatbot error:', error)
+    res.status(500).json({ message: `Chatbot error: ${error.message}` })
   }
 }
 
