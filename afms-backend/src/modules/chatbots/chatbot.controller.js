@@ -1,6 +1,6 @@
-import axios from 'axios'
 import Alert from '../alerts/alert.model.js'
 import { GoogleGenAI } from '@google/genai'
+import User from '../users/user.model.js'
 
 const chat = async (req, res) => {
   console.log('Chat request received with body:', req.body)
@@ -18,7 +18,10 @@ const chat = async (req, res) => {
     const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY })
 
     const { message } = req.body
-    const user = req.user
+    const user = await User.findById(req.user.id).select('name state lga')
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' })
+    }
 
     if (!message)
       return res.status(400).json({ message: 'Message is required' })
@@ -42,23 +45,24 @@ const chat = async (req, res) => {
     - Do NOT speculate or predict weather.
     - Encourage users to follow official alerts.
     - If the situation sounds life-threatening, advise contacting emergency services.
+    - Keep every reply to a maximum of 3 paragraphs.
+    - Personalize the response using the user's name when available.
+    - Be context-aware of the user's location details (state and LGA).
 
-    User Location:
-    State: ${user.location?.state || 'Unknown'}
-    LGA: ${user.location?.lga || 'Unknown'}
+    User Details:
+    Name: ${user.name.split(' ')[0] || 'User'}
+    State: ${user.state || 'Unknown'}
+    LGA: ${user.lga || 'Unknown'}
+
     Active Alerts:
     ${alertContext || 'No active alerts'}
     `
 
     // call the chatbot gemini api
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-2.5-flash',
       config: {
-        systemInstruction:
-          'You are an AI assistant for a Flood Management System (AFMS). Your role is to provide accurate, calm, and actionable flood-related advice. Only answer flood, rainfall, evacuation, safety, and preparedness questions. Do NOT speculate or predict weather. Encourage users to follow official alerts. If the situation sounds life-threatening, advise contacting emergency services.'
-      },
-      systemInstruction: {
-        parts: [{ text: systemPrompt }]
+        systemInstruction: systemPrompt
       },
       contents: [
         {
@@ -75,7 +79,6 @@ const chat = async (req, res) => {
       return res.status(500).json({ message: 'No response from chatbot' })
     }
 
-    console.log('systemPrompt:', systemPrompt)
     res.status(200).json({
       message: response.text,
       context: {
@@ -83,7 +86,6 @@ const chat = async (req, res) => {
       }
     })
   } catch (error) {
-    console.error('Chatbot error:', error)
     res.status(500).json({ message: `Chatbot error: ${error.message}` })
   }
 }

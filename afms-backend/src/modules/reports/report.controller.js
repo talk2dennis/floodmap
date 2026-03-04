@@ -1,4 +1,5 @@
 import { uploadToCloudinary } from '../../utils/uploadToCloudinary.js'
+import cloudinary from '../../config/cloudinary.js'
 import Report from './report.model.js'
 
 export const createReport = async (req, res) => {
@@ -102,9 +103,24 @@ export const deleteReport = async (req, res) => {
     if (report.user.toString() !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Unauthorized' })
     }
-    await report.remove()
+
+    const publicIds = (report.images || [])
+      .map(image => image?.publicId)
+      .filter(Boolean)
+
+    for (const publicId of publicIds) {
+      const deletion = await cloudinary.uploader.destroy(publicId)
+      if (deletion.result !== 'ok' && deletion.result !== 'not found') {
+        throw new Error(
+          `Failed to delete image from Cloudinary (publicId: ${publicId})`
+        )
+      }
+    }
+
+    await report.deleteOne()
     res.json({ message: 'Report deleted' })
   } catch (err) {
+    console.error('Error deleting report:', err)
     res.status(500).json({ message: `Error deleting report: ${err.message}` })
   }
 }
