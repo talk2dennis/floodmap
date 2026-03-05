@@ -1,8 +1,9 @@
-import axios from 'axios'
 import Alert from '../alerts/alert.model.js'
 import { GoogleGenAI } from '@google/genai'
+import User from '../users/user.model.js'
 
 const chat = async (req, res) => {
+  console.log('Chat request received with body:', req.body)
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY
   const GEMINI_API_URL = process.env.GEMINI_API_BASE_URL
   // check if api key and url are set
@@ -17,7 +18,10 @@ const chat = async (req, res) => {
     const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY })
 
     const { message } = req.body
-    const user = req.user
+    const user = await User.findById(req.user.id).select('name state lga')
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' })
+    }
 
     if (!message)
       return res.status(400).json({ message: 'Message is required' })
@@ -41,19 +45,24 @@ const chat = async (req, res) => {
     - Do NOT speculate or predict weather.
     - Encourage users to follow official alerts.
     - If the situation sounds life-threatening, advise contacting emergency services.
+    - Keep every reply to a maximum of 3 paragraphs.
+    - Personalize the response using the user's name when available.
+    - Be context-aware of the user's location details (state and LGA).
 
-    User Location:
-    State: ${user.location?.state || 'Unknown'}
-    LGA: ${user.location?.lga || 'Unknown'}
+    User Details:
+    Name: ${user.name.split(' ')[0] || 'User'}
+    State: ${user.state || 'Unknown'}
+    LGA: ${user.lga || 'Unknown'}
+
     Active Alerts:
     ${alertContext || 'No active alerts'}
     `
 
     // call the chatbot gemini api
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
-      systemInstruction: {
-        parts: [{ text: systemPrompt }]
+      model: 'gemini-2.5-flash',
+      config: {
+        systemInstruction: systemPrompt
       },
       contents: [
         {
@@ -65,9 +74,9 @@ const chat = async (req, res) => {
         temperature: 0.3
       }
     })
-    
+
     if (!response || !response.text) {
-      throw new Error('AI response was empty or malformed.')
+      return res.status(500).json({ message: 'No response from chatbot' })
     }
 
     res.status(200).json({
@@ -77,7 +86,7 @@ const chat = async (req, res) => {
       }
     })
   } catch (error) {
-    res.status(500).json({ message: error.message })
+    res.status(500).json({ message: `Chatbot error: ${error.message}` })
   }
 }
 
