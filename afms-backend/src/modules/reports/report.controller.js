@@ -100,7 +100,7 @@ export const deleteReport = async (req, res) => {
     if (!report) {
       return res.status(404).json({ message: 'Report not found' })
     }
-    if (report.user.toString() !== req.user.id && req.user.role !== 'admin') {
+    if (report.user.toString() !== req.user.id && req.user.role !== 'ADMIN') {
       return res.status(403).json({ message: 'Unauthorized' })
     }
 
@@ -131,7 +131,7 @@ export const updateReport = async (req, res) => {
     if (!report) {
       return res.status(404).json({ message: 'Report not found' })
     }
-    if (report.user.toString() !== req.user.id && req.user.role !== 'admin') {
+    if (report.user.toString() !== req.user.id && req.user.role !== 'ADMIN') {
       return res.status(403).json({ message: 'Unauthorized' })
     }
     const { title, description, severity, state, lga, status } = req.body
@@ -140,7 +140,7 @@ export const updateReport = async (req, res) => {
     if (severity) report.severity = severity
     if (state) report.state = state
     if (lga) report.lga = lga
-    if (status && req.user.role === 'admin') report.status = status
+    if (status && req.user.role === 'ADMIN') report.status = status
 
     await report.save()
     res.json(report)

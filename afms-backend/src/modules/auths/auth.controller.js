@@ -1,8 +1,112 @@
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import User from '../users/user.model.js'
+import FloodReport from '../reports/report.model.js'
+import Alerts from '../alerts/alert.model.js'
 import { generateToken } from '../../utils/jwt.js'
 import sendEmail from '../../utils/sendEmail.js'
+
+// admin login controller
+export const adminLogin = async (req, res) => {
+  try {
+    const { email, password } = req.body
+    const user = await User.findOne({ email }).select('+password')
+    if (!user || user.role !== 'ADMIN') {
+      return res.status(401).json({ message: 'Invalid credentials' })
+    }
+    const match = await bcrypt.compare(password, user.password)
+    if (!match) {
+      return res.status(401).json({ message: 'Invalid credentials' })
+    }
+    const token = generateToken({
+      id: user._id,
+      role: user.role
+    })
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        location: user.location,
+        state: user.state,
+        role: user.role,
+        lga: user.lga
+      }
+    })
+  } catch (err) {
+    console.error('failed to login', err)
+    res.status(500).json({ message: `Login error: ${err.message}` })
+  }
+}
+
+// admin get all users controller
+export const getAllUsers = async (req, res) => {
+  try {
+    // exclude current admin from the list of users
+    const users = await User.find({ _id: { $ne: req.user.id } }).select(
+      '-password'
+    )
+    res.json({ users })
+  } catch (err) {
+    console.error('failed to get all users', err)
+    res.status(500).json({ message: `Get all users error: ${err.message}` })
+  }
+}
+
+// admin delete user controller
+export const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params
+    const user = await User.findByIdAndDelete(id)
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' })
+    }
+    res.json({ message: 'User deleted successfully' })
+  } catch (err) {
+    console.error('failed to delete user', err)
+    res.status(500).json({ message: `Delete user error: ${err.message}` })
+  }
+}
+
+// admin update user role controller
+export const updateUserRole = async (req, res) => {
+  try {
+    const { id } = req.params
+    const { role } = req.body
+    const user = await User.findByIdAndUpdate(
+      id,
+      { role },
+      { new: true }
+    ).select('-password')
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' })
+    }
+    res.json({ user })
+  } catch (err) {
+    console.error('failed to update user role', err)
+    res.status(500).json({ message: `Update user role error: ${err.message}` })
+  }
+}
+
+// admin get statistics controller
+export const getStatistics = async (req, res) => {
+  try {
+    const totalUsers = await User.countDocuments()
+    const totalFloodReports = await FloodReport.countDocuments()
+    const totalAlerts = await Alerts.countDocuments()
+    const result = {
+      users: totalUsers,
+      floodReports: totalFloodReports,
+      alerts: totalAlerts
+    }
+    res.json({ ...result })
+  } catch (err) {
+    console.error('failed to get statistics', err)
+    res.status(500).json({ message: `Get statistics error: ${err.message}` })
+  }
+}
 
 export const login = async (req, res) => {
   try {
@@ -39,6 +143,7 @@ export const login = async (req, res) => {
       }
     })
   } catch (err) {
+    console.error('failed to login', err)
     res.status(500).json({ message: `Login error: ${err.message}` })
   }
 }
