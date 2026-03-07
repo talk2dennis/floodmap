@@ -27,12 +27,14 @@ export const getAlerts = async (req, res) => {
     const query = {}
 
     if (req.user.role !== 'ADMIN') {
-      query['target.state'] = req.user.location?.state
+      const user = await User.findById(req.user.id)
+      query['target.state'] = user.state
     }
 
     const alerts = await Alert.find(query).sort('-createdAt')
     res.json(alerts)
   } catch (error) {
+    console.error('Error fetching alerts:', error)
     res.status(500).json({ error: error.message })
   }
 }
@@ -88,7 +90,12 @@ export const sendAlert = async (req, res) => {
     if (alert.target?.state) query['location.state'] = alert.target.state
     if (alert.target?.lga) query['location.lga'] = alert.target.lga
 
-    const users = await User.find(query)
+    // find users matching the state and lga criteria
+    const users = await User.find({
+      state: query['location.state'],
+      lga: query['location.lga']
+    })
+
     // EMAIL DELIVERY
     if (alert.channels.email) {
       const logoUrl =
