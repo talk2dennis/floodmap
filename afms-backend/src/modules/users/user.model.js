@@ -42,6 +42,12 @@ const userSchema = new Schema(
       type: [Number] // [lng, lat]
     },
 
+    notifications: {
+      email: { type: Boolean, default: true },
+      sms: { type: Boolean, default: false },
+      push: { type: Boolean, default: false }
+    },
+
     resetPasswordToken: String,
     resetPasswordExpires: Date
   },

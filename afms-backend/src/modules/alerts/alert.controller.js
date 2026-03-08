@@ -90,6 +90,8 @@ export const sendAlert = async (req, res) => {
     if (alert.target?.state) query['location.state'] = alert.target.state
     if (alert.target?.lga) query['location.lga'] = alert.target.lga
 
+    console.log('Finding users with query:', query)
+
     // find users matching the state and lga criteria
     const users = await User.find({
       state: query['location.state'],
@@ -99,7 +101,7 @@ export const sendAlert = async (req, res) => {
     // EMAIL DELIVERY
     if (alert.channels.email) {
       const logoUrl =
-        process.env.SCHOOL_LOGO_URL ||
+        process.env.AFMS_LOGO_URL ||
         'https://res.cloudinary.com/dhtwzgd0x/image/upload/v1770545734/afms_logo_ci5vlw.png'
       const sentAt = new Date().toISOString().replace('T', ' ').slice(0, 19)
       const severityConfig = {
@@ -123,7 +125,7 @@ export const sendAlert = async (req, res) => {
             html: `
             <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; background: #ffffff; border: 1px solid #e6e6e6; border-radius: 10px; overflow: hidden;">
               <div style="background: linear-gradient(135deg, #0f3d3e 0%, #1b6b6f 100%); padding: 20px; text-align: center;">
-                <img src="${logoUrl}" alt="School Logo" style="width: 140px; height: auto; display: block; margin: 0 auto 8px;" />
+                <img src="${logoUrl}" alt="AFMS Logo" style="width: 140px; height: auto; display: block; margin: 0 auto 8px;" />
                 <h1 style="color: #ffffff; margin: 0; font-size: 20px; letter-spacing: 0.5px;">${
                   alert.title
                 }</h1>
