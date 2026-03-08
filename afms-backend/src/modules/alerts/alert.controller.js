@@ -85,18 +85,23 @@ export const sendAlert = async (req, res) => {
     if (alert.status === 'SENT')
       return res.status(400).json({ message: 'Alert already sent' })
 
-    // Find target users
-    const query = {}
-    if (alert.target?.state) query['location.state'] = alert.target.state
-    if (alert.target?.lga) query['location.lga'] = alert.target.lga
+    // Build recipient query from alert target filters.
+    const userQuery = {}
+    if (alert.target?.state) userQuery.state = alert.target.state
 
-    console.log('Finding users with query:', query)
+    const users = await User.find(userQuery)
+    if (users.length === 0) {
+      return res.status(404).json({
+        message: 'No users matched this alert target',
+        target: alert.target || {}
+      })
+    }
 
-    // find users matching the state and lga criteria
-    const users = await User.find({
-      state: query['location.state'],
-      lga: query['location.lga']
-    })
+    if (!alert.channels?.email) {
+      return res.status(400).json({
+        message: 'No enabled delivery channels for this alert'
+      })
+    }
 
     // EMAIL DELIVERY
     if (alert.channels.email) {
@@ -117,9 +122,11 @@ export const sendAlert = async (req, res) => {
         bg: '#f2f2f2'
       }
 
-      for (const user of users) {
-        if (user.email) {
-          await sendEmail({
+      const emailRecipients = users.filter(user => Boolean(user.email))
+
+      await Promise.all(
+        emailRecipients.map(user =>
+          sendEmail({
             to: user.email,
             subject: alert.title,
             html: `
@@ -152,8 +159,23 @@ export const sendAlert = async (req, res) => {
             </div>
           `
           })
-        }
+        )
+      )
+
+      if (emailRecipients.length === 0) {
+        return res.status(404).json({
+          message: 'No target users with valid email address were found'
+        })
       }
+
+      alert.status = 'SENT'
+      await alert.save()
+
+      return res.json({
+        message: 'Alert sent successfully',
+        recipientsMatched: users.length,
+        emailsSent: emailRecipients.length
+      })
     }
     // expo push notification delivery
     // if (alert.channels.push) {
@@ -167,11 +189,9 @@ export const sendAlert = async (req, res) => {
     //     }
     //   }
     // }
-    alert.status = 'SENT'
-    await alert.save()
-
-    res.json({ message: 'Alert sent successfully' })
+    return res.status(400).json({ message: 'No delivery channel handled' })
   } catch (error) {
+    console.error('Error sending alert:', error)
     res.status(500).json({ error: error.message })
   }
 }

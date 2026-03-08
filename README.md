@@ -56,7 +56,7 @@ Mobile and admin dashboard clients are maintained in separate repositories.
 - Security middleware: Helmet, CORS
 - File uploads: Multer
 - Cloud media storage: Cloudinary
-- Email delivery: Nodemailer (SMTP)
+- Email delivery: Mailjet (`node-mailjet`)
 - AI integration: Google GenAI (Gemini)
 
 ## Quick Start
@@ -109,7 +109,7 @@ For full endpoint tables and access rules, see `afms-backend/README.md`.
 
 - The backend uses ESM imports (`"type": "module"`).
 - Ensure all required `.env` variables are set before startup.
-- Cloudinary and SMTP are required for full feature execution.
+- Cloudinary and Mailjet are required for full feature execution.
 - MongoDB connection must be valid for service boot.
 
 ## Roadmap

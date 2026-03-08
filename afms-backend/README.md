@@ -40,7 +40,7 @@ The service is built with Express and MongoDB, and uses JWT-based authentication
 - Security: `helmet`, `cors`
 - File uploads: `multer`
 - Media storage: Cloudinary
-- Email: Nodemailer (SMTP)
+- Email: Mailjet (`node-mailjet`)
 - AI Assistant: Google GenAI (`@google/genai`)
 
 ## Project Structure
@@ -80,7 +80,7 @@ afms-backend/
 - npm 9+
 - MongoDB instance (local or cloud)
 - Cloudinary account (for report image uploads)
-- SMTP credentials (for email notifications and password reset)
+- Mailjet credentials (for email notifications and password reset)
 - Gemini API key (for chatbot)
 
 ### Installation
@@ -107,12 +107,11 @@ JWT_EXPIRES=7d
 # Frontend URL (used for password reset links)
 FRONTEND_URL=http://localhost:3000
 
-# SMTP (email)
-SMTP_HOST=smtp.example.com
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=your_email@example.com
-SMTP_PASS=your_email_password
+# Mailjet (email)
+MAILJET_API_KEY=your_mailjet_api_key
+MAILJET_API_SECRET=your_mailjet_api_secret
+MAILJET_FROM_EMAIL=no-reply@example.com
+MAILJET_FROM_NAME=AFMS
 
 # Cloudinary
 CLOUDINARY_CLOUD_NAME=your_cloud_name
@@ -130,7 +129,7 @@ GEMINI_API_BASE_URL=https://generativelanguage.googleapis.com
 - `MONGO_URI` is required. The server exits if missing.
 - `JWT_SECRET` and `JWT_EXPIRES` are required for token generation.
 - Cloudinary keys are required for any report upload operations.
-- SMTP values are required for password reset and alert email delivery.
+- Mailjet values are required for password reset and alert email delivery.
 - `GEMINI_API_KEY` and `GEMINI_API_BASE_URL` are required for chatbot responses.
 
 ## Running the Service
@@ -253,7 +252,7 @@ Base path examples below include `/api/...` as configured in `src/routes/index.j
 - Report upload fails:
   - Verify all Cloudinary keys are present and valid.
 - Password reset email not sent:
-  - Verify SMTP credentials and provider settings.
+  - Verify Mailjet credentials and sender identity settings.
 - Chatbot returns configuration error:
   - Verify `GEMINI_API_KEY` and `GEMINI_API_BASE_URL`.
 
