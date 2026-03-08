@@ -2,6 +2,9 @@ import Alert from '../alerts/alert.model.js'
 import { GoogleGenAI } from '@google/genai'
 import User from '../users/user.model.js'
 import Report from '../reports/report.model.js'
+import { fetchWeatherApi } from 'openmeteo'
+
+const WEATHER_URL = 'https://api.open-meteo.com/v1/forecast'
 
 const escapeRegex = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
@@ -76,26 +79,44 @@ const getWeatherContext = async userLocation => {
   const timeout = setTimeout(() => controller.abort(), 6000)
 
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,precipitation,rain,weather_code,wind_speed_10m&hourly=precipitation_probability&forecast_days=1&timezone=auto`
-    const weatherResponse = await fetch(url, { signal: controller.signal })
+    const params = {
+      latitude,
+      longitude,
+      current: 'temperature_2m,precipitation,rain,weather_code,wind_speed_10m',
+      hourly: 'precipitation_probability',
+      forecast_days: 1,
+      timezone: 'auto'
+    }
 
-    if (!weatherResponse.ok) {
+    const responses = await fetchWeatherApi(WEATHER_URL, params, 3, 0.2, 2, {
+      signal: controller.signal
+    })
+
+    const weatherResponse = responses?.[0]
+    if (!weatherResponse) {
       return 'Weather context unavailable: weather provider request failed.'
     }
 
-    const weatherJson = await weatherResponse.json()
-    const current = weatherJson?.current || {}
-    const hourly = weatherJson?.hourly || {}
-    const precipProb = Array.isArray(hourly.precipitation_probability)
-      ? hourly.precipitation_probability.slice(0, 6)
+    const current = weatherResponse.current?.()
+    const hourly = weatherResponse.hourly?.()
+
+    const currentTemperature = current?.variables(0)?.value()
+    const currentPrecipitation = current?.variables(1)?.value()
+    const currentRain = current?.variables(2)?.value()
+    const currentWeatherCode = current?.variables(3)?.value()
+    const currentWindSpeed = current?.variables(4)?.value()
+
+    const precipProbValues = hourly?.variables(0)?.valuesArray()
+    const precipProb = precipProbValues
+      ? Array.from(precipProbValues).slice(0, 6)
       : []
 
     return `Current weather near user location: temperature ${
-      current.temperature_2m ?? 'N/A'
-    } C, rain ${current.rain ?? 0} mm, precipitation ${
-      current.precipitation ?? 0
-    } mm, wind ${current.wind_speed_10m ?? 'N/A'} km/h, weather code ${
-      current.weather_code ?? 'N/A'
+      currentTemperature ?? 'N/A'
+    } C, rain ${currentRain ?? 0} mm, precipitation ${
+      currentPrecipitation ?? 0
+    } mm, wind ${currentWindSpeed ?? 'N/A'} km/h, weather code ${
+      currentWeatherCode ?? 'N/A'
     }. Next-hours precipitation probability samples: ${
       precipProb.length ? precipProb.join(', ') : 'N/A'
     }.`
@@ -202,12 +223,12 @@ const chat = async (req, res) => {
       .join('\n')
 
     const systemPrompt = `
-    You are an AI assistant for a Flood Management System.
+    You are an AI assistant for an AI powered Flood Management System - AFMS.
     Your role is to provide accurate, calm, and actionable flood safety guidance.
 
     Rules:
     - Answer flood, rainfall, evacuation, safety, preparedness, and general weather-help questions.
-    - Use the Weather Snapshot when available, but clearly mention uncertainty and advise checking official weather agencies for critical decisions.
+    - Use the Weather Snapshot when available, but clearly mention uncertainty and advise checking official weather agencies for critical decisions like NiMet and local Authority.
     - Use Active Alerts and Verified Community Reports as your primary local context.
     - If user asks for evacuation/safety help, provide a practical checklist.
     - If user asks for emergency contacts, provide a concise local contact template and recommend calling official emergency lines immediately for urgent risk.
@@ -218,7 +239,7 @@ const chat = async (req, res) => {
     - Be context-aware of the user's location details (state and LGA).
 
     User Details:
-    Name: ${user.name.split(' ')[0] || 'User'}
+    Name: ${user.name.split(' ')[1] || user.name.split('')[0] || 'User'}
     State: ${user.state || 'Unknown'}
     LGA: ${user.lga || 'Unknown'}
 
