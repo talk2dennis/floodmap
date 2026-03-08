@@ -217,7 +217,8 @@ export const forgotPassword = async (req, res, next) => {
     // reset link
     const resetLink = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`
 
-    await sendEmail({
+    try {
+      await sendEmail({
       to: user.email,
       subject: 'AFMS (FloodMap) Password Reset',
       html: `
@@ -232,19 +233,21 @@ export const forgotPassword = async (req, res, next) => {
         <div style="text-align: center; margin: 30px 0;">
         <a href="${resetLink}" style="background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Reset Password</a>
         </div>
-        <div style="text-align: center; margin: 30px 0;">
-          <p style="color: #555; font-size: 14px; line-height: 1.6;">Copy and paste the link below if the button doesn't work:</p>
-          <a href="${resetLink}" style="color: #667eea; word-break: break-all;">${resetLink}</a>
-        </div>
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+        <p style="color: #555; font-size: 14px; line-height: 1.6;">For the mobile app, copy this token: <strong>${resetToken}</strong></p>
         <p style="color: #777; font-size: 13px; line-height: 1.6; background: #fff3cd; padding: 12px; border-radius: 4px; border-left: 4px solid #ffc107;">
-        <strong>Security:</strong> This link expires in 24 hour. If you didn't request this, please ignore this email.
+        <strong>Security:</strong> This link expires in 24 hours. If you didn't request this, please ignore this email.
         </p>
         <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
         <p style="color: #999; font-size: 12px; text-align: center;">© ${currentYear} AFMS-FLOODMAP. All rights reserved.</p>
       </div>
       </div>
       `
-    })
+      })
+    } catch (emailErr) {
+      console.error('failed to send password reset email', emailErr)
+      return res.status(500).json({ message: 'Failed to send reset email' })
+    }
 
     res.json({ message: 'Password reset email sent' })
   } catch (err) {
