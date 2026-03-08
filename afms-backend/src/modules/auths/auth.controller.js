@@ -210,12 +210,12 @@ export const forgotPassword = async (req, res, next) => {
       .digest('hex')
 
     user.resetPasswordToken = resetTokenHash
-    // Token expires in 1 hour
-    user.resetPasswordExpires = Date.now() + 3600000
+    // Token expires in 24 hour
+    user.resetPasswordExpires = Date.now() + 86400000
     await user.save()
 
     // reset link
-    const resetLink = `${process.env.FRONTEND_URL}/auth/reset-password/${resetToken}`
+    const resetLink = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`
 
     await sendEmail({
       to: user.email,
@@ -237,7 +237,7 @@ export const forgotPassword = async (req, res, next) => {
           <a href="${resetLink}" style="color: #667eea; word-break: break-all;">${resetLink}</a>
         </div>
         <p style="color: #777; font-size: 13px; line-height: 1.6; background: #fff3cd; padding: 12px; border-radius: 4px; border-left: 4px solid #ffc107;">
-        <strong>Security:</strong> This link expires in 1 hour. If you didn't request this, please ignore this email.
+        <strong>Security:</strong> This link expires in 24 hour. If you didn't request this, please ignore this email.
         </p>
         <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
         <p style="color: #999; font-size: 12px; text-align: center;">© ${currentYear} AFMS-FLOODMAP. All rights reserved.</p>
